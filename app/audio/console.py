@@ -2,5 +2,5 @@ from app.audio.base import AudioEngine
 
 
 class ConsoleAudioEngine(AudioEngine):
-    def play_azan(self, prayer_name: str) -> None:
-        print(f"[AUDIO] Azan triggered for {prayer_name}")
+    def play_file(self, file_path: str) -> None:
+        print(f"[AUDIO] (console) Playing file: {file_path}")

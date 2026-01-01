@@ -13,5 +13,7 @@ behavior:
 
 audio:
   mode: "system"   # console | system
-  azan_file: "assets/audio/azan.wav"
   volume_percent: 70
+  files:
+    fajr: assets/audio/azan_fajr.wav
+    default: assets/audio/azan.wav

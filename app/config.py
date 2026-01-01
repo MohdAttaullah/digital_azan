@@ -15,7 +15,7 @@ class AppConfig:
     check_interval_seconds: int
     trigger_window_seconds: int
     audio_mode: str
-    azan_file: str
+    audio_files: dict[str, str]
     volume_percent: int
 
 
@@ -53,7 +53,9 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
     audio = _require(raw, "audio", "root")
 
     audio_mode = str(_require(audio, "mode", "audio")).strip()
-    azan_file = str(_require(audio, "azan_file", "audio")).strip()
+    audio_files = _require(audio, "files", "audio")
+    if not isinstance(audio_files, dict):
+        raise ValueError("audio.files must be a mapping")
     volume_percent = int(_require(audio, "volume_percent", "audio"))
 
 
@@ -71,7 +73,7 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
         check_interval_seconds=check_interval_seconds,
         trigger_window_seconds=trigger_window_seconds,
         audio_mode=audio_mode,
-        azan_file=azan_file,
+        audio_files=audio_files,
         volume_percent=volume_percent,
     )
 

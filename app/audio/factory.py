@@ -8,7 +8,6 @@ def create_audio_engine(cfg):
 
     if cfg.audio_mode == "system":
         return SystemAudioEngine(
-            azan_file=cfg.azan_file,
             volume_percent=cfg.volume_percent,
         )
 

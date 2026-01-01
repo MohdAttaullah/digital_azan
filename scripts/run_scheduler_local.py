@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     if "--test-azan" in sys.argv:
         print("Manual Azan test mode")
-        azan_player.play("TEST")
+        azan_player.play("Maghrib")
         sys.exit(0)
 
 
