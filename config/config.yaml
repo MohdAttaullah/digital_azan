@@ -1,0 +1,10 @@
+location:
+  city: "Hyderabad"
+  country: "India"
+  method: 2
+
+runtime:
+  timezone: "Asia/Kolkata"
+
+behavior:
+  prayers: ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
