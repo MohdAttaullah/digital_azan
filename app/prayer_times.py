@@ -1,6 +1,7 @@
 import requests
-from datetime import datetime
 from typing import Dict
+
+from app.cache import load_today_cache, save_today_cache
 
 
 class PrayerTimesClient:
@@ -12,6 +13,12 @@ class PrayerTimesClient:
         self.method = method
 
     def fetch_today(self) -> Dict[str, str]:
+        # 1) Try cache first
+        cached = load_today_cache()
+        if cached:
+            return cached
+
+        # 2) Fetch from API
         params = {
             "city": self.city,
             "country": self.country,
@@ -29,10 +36,14 @@ class PrayerTimesClient:
         data = response.json()
         timings = data["data"]["timings"]
 
-        return {
+        result = {
             "Fajr": timings["Fajr"],
             "Dhuhr": timings["Dhuhr"],
             "Asr": timings["Asr"],
             "Maghrib": timings["Maghrib"],
             "Isha": timings["Isha"],
         }
+
+        # 3) Save cache
+        save_today_cache(result)
+        return result
