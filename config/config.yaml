@@ -5,6 +5,13 @@ location:
 
 runtime:
   timezone: "Asia/Kolkata"
+  check_interval_seconds: 20
+  trigger_window_seconds: 90
 
 behavior:
   prayers: ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
+
+audio:
+  mode: "system"   # console | system
+  azan_file: "assets/audio/azan.wav"
+  volume_percent: 70

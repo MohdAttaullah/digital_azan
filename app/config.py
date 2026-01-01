@@ -11,7 +11,14 @@ class AppConfig:
     country: str
     method: int
     timezone: str
-    prayers: List[str]
+    prayers: list[str]
+    check_interval_seconds: int
+    trigger_window_seconds: int
+    audio_mode: str
+    azan_file: str
+    volume_percent: int
+
+
 
 
 def _require(d: Dict[str, Any], key: str, ctx: str) -> Any:
@@ -37,7 +44,19 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
 
     timezone = str(_require(runtime, "timezone", "runtime")).strip()
 
+    check_interval_seconds = int(_require(runtime, "check_interval_seconds", "runtime"))
+    trigger_window_seconds = int(_require(runtime, "trigger_window_seconds", "runtime"))
+
+
     prayers = _require(behavior, "prayers", "behavior")
+
+    audio = _require(raw, "audio", "root")
+
+    audio_mode = str(_require(audio, "mode", "audio")).strip()
+    azan_file = str(_require(audio, "azan_file", "audio")).strip()
+    volume_percent = int(_require(audio, "volume_percent", "audio"))
+
+
     if not isinstance(prayers, list) or not prayers:
         raise ValueError("behavior.prayers must be a non-empty list")
 
@@ -49,4 +68,11 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
         method=method,
         timezone=timezone,
         prayers=prayers,
+        check_interval_seconds=check_interval_seconds,
+        trigger_window_seconds=trigger_window_seconds,
+        audio_mode=audio_mode,
+        azan_file=azan_file,
+        volume_percent=volume_percent,
     )
+
+

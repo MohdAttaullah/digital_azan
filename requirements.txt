@@ -1,2 +1,3 @@
 requests
 pyyaml
+tzdata; platform_system == "Windows"
