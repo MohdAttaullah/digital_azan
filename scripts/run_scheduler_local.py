@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     if "--test-azan" in sys.argv:
         print("Manual Azan test mode")
-        azan_player.play("Maghrib")
+        azan_player.play("fajr")
         sys.exit(0)
 
     client = PrayerTimesClient(

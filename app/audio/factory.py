@@ -7,8 +7,6 @@ def create_audio_engine(cfg):
         return ConsoleAudioEngine()
 
     if cfg.audio_mode == "system":
-        return SystemAudioEngine(
-            volume_percent=cfg.volume_percent,
-        )
+        return SystemAudioEngine()
 
     raise ValueError(f"Unknown audio mode: {cfg.audio_mode}")

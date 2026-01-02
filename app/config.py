@@ -16,7 +16,6 @@ class AppConfig:
     trigger_window_seconds: int
     audio_mode: str
     audio_files: dict[str, str]
-    volume_percent: int
 
 
 
@@ -56,7 +55,6 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
     audio_files = _require(audio, "files", "audio")
     if not isinstance(audio_files, dict):
         raise ValueError("audio.files must be a mapping")
-    volume_percent = int(_require(audio, "volume_percent", "audio"))
 
 
     if not isinstance(prayers, list) or not prayers:
@@ -74,7 +72,6 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
         trigger_window_seconds=trigger_window_seconds,
         audio_mode=audio_mode,
         audio_files=audio_files,
-        volume_percent=volume_percent,
     )
 
 

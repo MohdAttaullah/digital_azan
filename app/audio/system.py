@@ -6,16 +6,14 @@ from app.audio.base import AudioEngine
 
 
 class SystemAudioEngine(AudioEngine):
-    def __init__(self, volume_percent: int):
-        self.volume_percent = volume_percent
-        self.system = platform.system().lower()
+    """
+    Cross-platform system audio engine.
+    - Windows: winsound (blocking)
+    - Linux (Pi): mpv (headless, bluetooth-safe)
+    """
 
-    def _set_volume(self):
-        if self.system == "linux":
-            subprocess.run(
-                ["amixer", "sset", "Master", f"{self.volume_percent}%"],
-                check=False,
-            )
+    def __init__(self):
+        self.system = platform.system().lower()
 
     def play_file(self, file_path: str) -> None:
         path = Path(file_path)
@@ -24,10 +22,22 @@ class SystemAudioEngine(AudioEngine):
             print(f"[ERROR] Audio file not found: {path}")
             return
 
+        # Windows (local testing)
         if self.system == "windows":
             import winsound
             winsound.PlaySound(str(path), winsound.SND_FILENAME)
 
+        # Linux (Raspberry Pi)
         elif self.system == "linux":
-            self._set_volume()
-            subprocess.run(["mpg123", str(path)], check=False)
+            subprocess.run(
+                [
+                    "mpv",
+                    "--no-video",
+                    "--quiet",
+                    str(path),
+                ],
+                check=False,
+            )
+
+        else:
+            print(f"[ERROR] Unsupported OS: {self.system}")
