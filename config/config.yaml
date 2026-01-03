@@ -1,7 +1,7 @@
 location:
   city: "Hyderabad"
   country: "India"
-  method: 2
+  method: 1
 
 runtime:
   timezone: "Asia/Kolkata"
