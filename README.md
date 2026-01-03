@@ -235,40 +235,128 @@ Ensure:
 **Service File**
 
 ```bash
-sudo nano /etc/systemd/system/digital-azan.service
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/digital-azan.service
 ```
 
 ```ini
 [Unit]
 Description=Digital Azan Prayer Scheduler
-After=network-online.target sound.target
-Wants=network-online.target
+After=pipewire.service wireplumber.service bluetooth.service
 
 [Service]
-User=pi
-WorkingDirectory=/home/pi/projects/digital_azan
 ExecStart=/home/pi/projects/digital_azan/.venv/bin/python -m scripts.run_scheduler_local
+WorkingDirectory=/home/pi/projects/digital_azan
 Restart=always
-RestartSec=10
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 
 ```
+
+**Enable lingering (one-time)**
+
+```bash
+sudo loginctl enable-linger pi
+```
+
 
 **Enable & Start**
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable digital-azan
-sudo systemctl start digital-azan
+systemctl --user daemon-reload
+systemctl --user enable digital-azan
+systemctl --user start digital-azan
 ```
 
 **Check Status**
 ```bash
-sudo systemctl status digital-azan
+systemctl --user status digital-azan
 ```
 
+
+### Robust Bluetooth Auto-Reconnect Design
+
+#### Behavior:
+
+- Service runs at boot
+- Tries to connect
+- If speaker is OFF → **fails**
+- systemd waits → **retries**
+- When speaker turns ON → **connect succeeds**
+- Service exits cleanly
+
+script to connect to bluetooth speaker
+```bash
+sudo nano /usr/local/bin/bt-autoconnect.sh
+```
+```sh
+#!/bin/bash
+
+BT_MAC="3C:1A:CD:7D:9C:3D"
+BT_SINK="bluez_sink.3C_1A_CD_7D_9C_3D.a2dp_sink"
+
+while true; do
+    # If sink already exists, ensure it's default
+    if pactl list short sinks | grep -q "$BT_SINK"; then
+        pactl set-default-sink "$BT_SINK"
+        sleep 10
+        continue
+    fi
+
+    # Try to connect speaker
+    bluetoothctl connect "$BT_MAC" >/dev/null 2>&1
+
+    # Wait for sink
+    for i in {1..10}; do
+        if pactl list short sinks | grep -q "$BT_SINK"; then
+            pactl set-default-sink "$BT_SINK"
+            break
+        fi
+        sleep 2
+    done
+
+    sleep 10
+done
+```
+
+Make sure it’s executable:
+
+```bash
+sudo chmod +x /usr/local/bin/bt-autoconnect.sh
+```
+
+systemd service to auto-retry
+
+```bash
+sudo nano /etc/systemd/system/bt-autoconnect.service
+```
+```ini
+[Unit]
+Description=Bluetooth Speaker Monitor & Auto-Connect
+After=bluetooth.service pipewire.service wireplumber.service
+Wants=bluetooth.service
+
+[Service]
+Type=simple
+User=pi
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStart=/usr/local/bin/bt-autoconnect.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Reload & enable
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable bt-autoconnect
+sudo systemctl restart bt-autoconnect
+```
 ---
 
 ## 🧹 Automatic Cleanup
