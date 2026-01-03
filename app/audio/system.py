@@ -34,6 +34,7 @@ class SystemAudioEngine(AudioEngine):
                     "mpv",
                     "--no-video",
                     "--quiet",
+                    "--ao=pulse",
                     str(path),
                 ],
                 check=False,
