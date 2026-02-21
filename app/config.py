@@ -16,6 +16,7 @@ class AppConfig:
     trigger_window_seconds: int
     audio_mode: str
     audio_files: dict[str, str]
+    ramadan_override_enabled: bool
 
 
 
@@ -62,6 +63,9 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
 
     prayers = [str(p).strip() for p in prayers]
 
+    ramadan_cfg = raw.get("ramadan_override", {})
+    ramadan_override_enabled = bool(ramadan_cfg.get("enabled", False))
+
     return AppConfig(
         city=city,
         country=country,
@@ -72,6 +76,7 @@ def load_config(path: str | Path = "config/config.yaml") -> AppConfig:
         trigger_window_seconds=trigger_window_seconds,
         audio_mode=audio_mode,
         audio_files=audio_files,
+        ramadan_override_enabled=ramadan_override_enabled,
     )
 
 

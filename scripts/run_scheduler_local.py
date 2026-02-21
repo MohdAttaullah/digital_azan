@@ -31,6 +31,7 @@ if __name__ == "__main__":
         city=cfg.city,
         country=cfg.country,
         method=cfg.method,
+        ramadan_override_enabled=cfg.ramadan_override_enabled,
     )
 
     scheduler = PrayerScheduler(

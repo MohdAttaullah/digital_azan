@@ -5,12 +5,15 @@ import requests
 from datetime import date
 from pathlib import Path
 
+from app.ramadan_overrides import apply_ramadan_overrides
+
 
 class PrayerTimesClient:
-    def __init__(self, city: str, country: str, method: int):
+    def __init__(self, city: str, country: str, method: int, ramadan_override_enabled: bool = False):
         self.city = city
         self.country = country
         self.method = method
+        self.ramadan_override_enabled = ramadan_override_enabled
         self.cache_dir = Path("app/cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -61,8 +64,8 @@ class PrayerTimesClient:
 
             self._save_cache(cleaned)
             print("[CACHE] Prayer times fetched from API")
-            return cleaned
+            return apply_ramadan_overrides(cleaned, self.ramadan_override_enabled)
 
         except Exception as e:
             print(f"[WARN] API failed, using cached timings: {e}")
-            return self._load_cache()
+            return apply_ramadan_overrides(self._load_cache(), self.ramadan_override_enabled)

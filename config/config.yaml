@@ -16,3 +16,6 @@ audio:
   files:
     fajr: assets/audio/azan_fajr.wav
     default: assets/audio/azan.wav
+
+ramadan_override:
+  enabled: true    # Use local masjid timetable for Fajr & Maghrib during Ramadan
