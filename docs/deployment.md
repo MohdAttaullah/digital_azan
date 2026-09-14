@@ -224,10 +224,10 @@ replacement is explicit and private-network friendly:
 - `ci.yml`: pushes to main, pull requests and manual runs; Python 3.11/3.12 tests,
   lint, DOM tests, JavaScript/shell syntax and console simulation on GitHub-hosted
   runners.
-- `deploy.yml`: every push to `main`, plus manual dispatch, runs the full hosted
-  validation job first. Only a successful validation job unlocks installation on
-  a dedicated self-hosted Pi runner labelled `self-hosted`, `Linux`, `ARM64`, `azan`.
-  Pull requests never run the deployment job.
+- `deploy.yml`: a successful completed `Test` workflow caused by a push to `main`
+  unlocks installation on a dedicated self-hosted Pi runner labelled
+  `self-hosted`, `Linux`, `ARM64`, `azan`. A manual dispatch on `main` runs its own
+  hosted validation first. Pull requests never run the deployment job.
 - Configure repository environment `raspberry-pi`. For unattended production
   deployment, do not add an approval gate to that environment. Optional repository
   variables are `AZAN_INSTALL_ROOT`, `AZAN_SSD_MOUNT`, and `AZAN_WEB_PORT`; verified
@@ -246,7 +246,7 @@ replacement is explicit and private-network friendly:
   overlapping production jobs, and an on-disk deployment lock also protects
   manual runs.
 
-The production flow is push to `main` → hosted tests → ARM64 runner → stage
+The production flow is push to `main` → required `Test` checks → ARM64 runner → stage
 release and dependencies → preserve/backup shared data → stop the old service →
 migrate → atomically switch code → start → health verification. A failed hosted
 job cannot schedule deployment, and installer or health failure exits the

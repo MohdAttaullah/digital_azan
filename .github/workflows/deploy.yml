@@ -1,6 +1,8 @@
 name: Deploy to Raspberry Pi
 on:
-  push:
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 permissions:
@@ -10,6 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   test:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +28,16 @@ jobs:
       - run: for script in deploy/*.sh; do bash -n "$script"; done
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository) ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/main' &&
+        needs.test.result == 'success'))
     environment: raspberry-pi
     # Install a dedicated runner as the existing Pi audio user. Never use it for pull requests.
     runs-on: [self-hosted, Linux, ARM64, azan]
@@ -35,5 +47,7 @@ jobs:
       AZAN_WEB_PORT: ${{ vars.AZAN_WEB_PORT || '8090' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Stage, migrate, restart, and verify
         run: bash deploy/install.sh

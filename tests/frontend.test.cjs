@@ -19,6 +19,7 @@ function fixture() {
 async function page() {
   const dom = new JSDOM(html,{url:'http://localhost:8080',runScripts:'outside-only',pretendToBeVisual:true});
   const state=fixture(), calls=[];
+  dom.window.Date.now=()=>Date.parse(state.now);
   dom.window.HTMLElement.prototype.scrollIntoView=function(){};
   dom.window.fetch=async(path,options={})=>{
     const data=options.body?JSON.parse(options.body):undefined;
