@@ -4,3 +4,12 @@ __pycache__/
 state/*.json
 .env
 app/cache/
+state/*.sqlite3*
+state/*.lock
+state/cache/
+state/backups/
+.pytest_cache/
+.ruff_cache/
+artifacts/
+*.log
+node_modules/

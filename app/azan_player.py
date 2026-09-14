@@ -1,53 +1,51 @@
+"""Playback lifecycle, preserving the previous MPD pause/resume behavior."""
+import logging
+import shutil
 import subprocess
 from app.audio.factory import create_audio_engine
 
+log = logging.getLogger(__name__)
+
 
 class AzanPlayer:
-    def __init__(self, cfg):
-        self.engine = create_audio_engine(cfg)
-        self.audio_files = cfg.audio_files
+    def __init__(self, cfg, engine=None):
+        self.engine = engine or create_audio_engine(cfg)
+        self.use_mpd = cfg.audio_mode == "system" and bool(shutil.which("mpc"))
+        self.resume_mpd = False
 
-    def _select_azan_file(self, prayer_name: str) -> str:
-        if prayer_name.lower() == "fajr":
-            return self.audio_files["fajr"]
-        return self.audio_files["default"]
+    def _mpc(self, command):
+        return subprocess.run(["mpc", command], capture_output=True, text=True, timeout=2,
+                              check=True)
 
-    def _is_mpd_playing(self) -> bool:
+    def start(self, file_path, volume):
+        self.resume_mpd = False
+        if self.use_mpd:
+            try:
+                self.resume_mpd = "[playing]" in self._mpc("status").stdout
+                if self.resume_mpd:
+                    self._mpc("stop")
+            except (OSError, subprocess.SubprocessError):
+                log.warning("Could not coordinate MPD", exc_info=True)
+                self.resume_mpd = False
         try:
-            result = subprocess.check_output(
-                ["mpc", "status"],
-                stderr=subprocess.DEVNULL
-            ).decode()
-            return "[playing]" in result
-        except:
-            return False
+            self.engine.start(file_path, volume)
+        except Exception:
+            self.finish()
+            raise
 
-    def _stop_mpd(self):
-        subprocess.run(
-            ["mpc", "stop"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+    def poll(self):
+        return self.engine.poll()
 
-    def _resume_mpd(self):
-        subprocess.run(
-            ["mpc", "play"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+    def finish(self):
+        if self.resume_mpd:
+            self.resume_mpd = False
+            try:
+                self._mpc("play")
+            except (OSError, subprocess.SubprocessError):
+                log.warning("Could not resume MPD", exc_info=True)
 
-    def play(self, prayer_name: str) -> None:
-        azan_file = self._select_azan_file(prayer_name)
-
-        mpd_was_playing = self._is_mpd_playing()
-
-        if mpd_was_playing:
-            print("[AUDIO] Stopping MPD")
-            self._stop_mpd()
-
-        print(f"[AUDIO] Playing Azan for {prayer_name}")
-        self.engine.play_file(azan_file)
-
-        if mpd_was_playing:
-            print("[AUDIO] Resuming MPD")
-            self._resume_mpd()
+    def stop(self):
+        try:
+            self.engine.stop()
+        finally:
+            self.finish()

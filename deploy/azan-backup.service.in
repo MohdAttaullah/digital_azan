@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up Digital Azan durable data
+
+[Service]
+Type=oneshot
+WorkingDirectory=@ROOT@/current
+EnvironmentFile=@ROOT@/shared/environment
+ExecStart=@ROOT@/current/.venv/bin/python -m scripts.backup_daily
+UMask=0077

@@ -9,6 +9,9 @@ if __name__ == "__main__":
         city=cfg.city,
         country=cfg.country,
         method=cfg.method,
+        timezone=cfg.timezone,
+        school=cfg.school,
+        cache_dir=cfg.data_dir / "cache",
     )
 
     timings = client.fetch_today()

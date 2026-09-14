@@ -5,17 +5,28 @@ location:
 
 runtime:
   timezone: "Asia/Kolkata"
-  check_interval_seconds: 20
+  check_interval_seconds: 2
   trigger_window_seconds: 90
+  data_dir: state
 
 behavior:
   prayers: ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
 
 audio:
   mode: "system"   # console | system
+  output: "pulse"  # Preserve the Raspberry Pi PulseAudio/PipeWire output
+  # Explicit collection folders take precedence over legacy single files.
+  # An empty configured folder is an error, never a fallback to another collection.
+  # collections:
+  #   normal: /path/on/ssd/audio/normal
+  #   fajr: /path/on/ssd/audio/fajr
   files:
     fajr: assets/audio/azan_fajr.wav
     default: assets/audio/azan.wav
 
 ramadan_override:
   enabled: true    # Use local masjid timetable for Fajr & Maghrib during Ramadan
+
+web:
+  host: "0.0.0.0"
+  port: 8080

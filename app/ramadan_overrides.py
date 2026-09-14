@@ -4,7 +4,10 @@
 # Overrides Fajr (Sehr) and Maghrib (Iftar) with masjid-published times
 # so they match the local printed timetable instead of the API values.
 
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from app.config import DEFAULT_TIMEZONE
 
 # Mapping: date -> (Fajr/Sehr time, Maghrib/Iftar time)
 RAMADAN_2026_LOCAL: dict[str, tuple[str, str]] = {
@@ -43,7 +46,8 @@ RAMADAN_2026_LOCAL: dict[str, tuple[str, str]] = {
 }
 
 
-def apply_ramadan_overrides(timings: dict, enabled: bool = True) -> dict:
+def apply_ramadan_overrides(timings: dict, enabled: bool = True, *, day=None,
+                            timezone=DEFAULT_TIMEZONE) -> dict:
     """
     Replace Fajr and Maghrib in *timings* with local masjid values
     if today falls within Ramadan 2026 and the feature is enabled.
@@ -53,7 +57,7 @@ def apply_ramadan_overrides(timings: dict, enabled: bool = True) -> dict:
     if not enabled:
         return timings
 
-    today_key = date.today().isoformat()
+    today_key = (day or datetime.now(ZoneInfo(timezone)).date()).isoformat()
     override = RAMADAN_2026_LOCAL.get(today_key)
 
     if override is None:
@@ -61,8 +65,9 @@ def apply_ramadan_overrides(timings: dict, enabled: bool = True) -> dict:
 
     fajr_local, maghrib_local = override
     updated = dict(timings)
-    updated["Fajr"] = fajr_local
-    updated["Maghrib"] = maghrib_local
+    fh, fm = map(int, fajr_local.split(":"))
+    mh, mm = map(int, maghrib_local.split(":"))
+    updated["Fajr"] = f"{fh:02}:{fm:02}"
+    updated["Maghrib"] = f"{mh + 12:02}:{mm:02}"
 
-    print(f"[RAMADAN] Overriding Fajr → {fajr_local}, Maghrib → {maghrib_local}  (local timetable)")
     return updated

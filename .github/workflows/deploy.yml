@@ -1,0 +1,36 @@
+name: Deploy to Raspberry Pi
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: raspberry-pi-production
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - run: python -m ruff check app scripts tests
+      - run: node --check app/static/app.js
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: for script in deploy/*.sh; do bash -n "$script"; done
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    environment: raspberry-pi
+    # Install a dedicated runner as the existing Pi audio user. Never use it for pull requests.
+    runs-on: [self-hosted, Linux, ARM64, azan]
+    env:
+      AZAN_INSTALL_ROOT: ${{ vars.AZAN_INSTALL_ROOT }}
+      AZAN_SSD_MOUNT: ${{ vars.AZAN_SSD_MOUNT }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage, migrate, restart, and verify
+        run: bash deploy/install.sh

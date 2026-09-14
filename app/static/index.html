@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#153f36">
+  <title>Digital Azan · Prayer controller</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a href="#today" class="brand"><span class="brand-icon">☾</span><span>Digital Azan<small>YOUR DAILY PRAYER COMPANION</small></span></a><span id="connection" class="pill">Connecting…</span></header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow" id="date-label">WELCOME HOME</p><h1>A moment for prayer.</h1></div><div class="clock-block"><strong id="clock">--:--:--</strong><small id="timezone">Local time</small></div></div>
+    <nav aria-label="Main navigation"><button data-page="today" class="selected">Today</button><button data-page="history">History</button><button data-page="ramadan">Ramadan timings</button><button data-page="settings">Settings</button></nav>
+    <div id="error" class="notice error" role="alert" hidden></div>
+    <div id="toast" class="notice" role="status" hidden></div>
+    <div id="snooze-banner" class="notice snoozed" hidden><span id="snooze-label"></span><button id="resume">Resume now</button></div>
+    <div id="playing-banner" class="notice playing" hidden><strong>Azan is playing</strong><button id="stop" class="danger">■ STOP AZAN</button></div>
+
+    <section id="page-today">
+      <div class="dashboard-grid">
+        <article class="next-card"><p class="eyebrow">NEXT AZAN</p><div class="next-title"><h2 id="next-prayer">Loading schedule</h2><span id="next-time">—</span></div><p id="next-source">Your prayer schedule will appear here.</p><div class="countdown-wrap"><span>STARTS IN</span><strong id="countdown">--:--:--</strong></div><div class="next-footer"><span id="next-date"></span><span>☾</span></div></article>
+        <article class="card meeting"><span class="icon-circle">Ⅱ</span><h2>A little quiet time</h2><p>In a meeting? Suppress upcoming Azan audio for a while.</p><div class="presets"><button data-snooze="15">15 min</button><button data-snooze="30">30 min</button><button data-snooze="60" class="primary">60 min</button></div><div class="custom-snooze"><label>Until <input id="snooze-time" type="time" aria-label="Snooze until time"></label><button id="snooze-custom">Set</button></div><small>Prayer times stay the same. Suppressed Azans are never played later.</small></article>
+      </div>
+      <div class="section-title"><h2>Today’s prayers</h2><span id="played-summary">Loading…</span></div>
+      <div id="summary" class="summary"></div>
+      <div id="prayers" class="prayer-list"></div>
+      <div class="volume-bar card"><div><strong>Azan volume <span id="volume-label">70%</span></strong><small>Applies to the next playback · only Azan audio</small></div><div class="volume-control"><button id="volume-down" aria-label="Decrease volume">−</button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Azan volume"><button id="volume-up" aria-label="Increase volume">+</button></div></div>
+      <p class="footnote">Prayer toggles are persistent. Use Skip for one occurrence, or Snooze for a meeting.</p>
+    </section>
+
+    <section id="page-history" hidden><div class="section-title"><div><h2>Playback history</h2><p>What happened, one day at a time.</p></div><label>Date <input type="date" id="history-date"></label></div><div id="history-summary" class="summary"></div><div id="history-rows" class="prayer-list"></div></section>
+
+    <section id="page-ramadan" hidden>
+      <div class="section-title"><div><h2>Your Masjid’s Ramadan timetable</h2><p>Review local Fajr and Maghrib times before activating a profile.</p></div><button id="new-profile" class="primary">New profile</button></div>
+      <div id="profiles" class="profile-list"></div>
+      <article class="card editor" id="profile-editor">
+        <h3 id="editor-title">New draft</h3><div class="form-grid"><label>Profile name<input id="profile-name" placeholder="Ramadan 2027" maxlength="120"></label><label>Timetable source<input id="profile-source" placeholder="Local Masjid" maxlength="200"></label></div>
+        <details><summary>Import CSV</summary><p>Use Gregorian dates and 24-hour times. <a href="/static/ramadan-example.csv" download>Download example CSV</a></p><input id="csv-file" type="file" accept=".csv,text/csv" aria-label="CSV timetable"><textarea id="csv-text" rows="4" placeholder="date,fajr,maghrib&#10;2027-03-05,05:21,18:34" aria-label="CSV contents"></textarea><div class="form-grid mappings"><label>Date column<input id="map-date" value="date"></label><label>Fajr column<input id="map-fajr" value="fajr"></label><label>Maghrib column<input id="map-maghrib" value="maghrib"></label></div><p class="footnote">Confirm column meanings. “Sehri ends” is not automatically a Fajr timing.</p><button id="parse-csv">Confirm mapping & load draft</button></details>
+        <details><summary>Import photo or PDF (optional local OCR)</summary><p>Extraction stays a draft. Low confidence text needs careful correction. The first three PDF pages are processed.</p><input id="ocr-file" type="file" accept="image/png,image/jpeg,application/pdf" aria-label="Timetable photo or PDF"><button id="extract-ocr">Extract text</button><div id="ocr-output"></div><div class="form-grid"><label>Fajr time column (1-based)<input id="ocr-fajr-column" type="number" min="1" value="1"></label><label>Maghrib time column (1-based)<input id="ocr-maghrib-column" type="number" min="1" value="2"></label></div><button id="map-ocr">Confirm column meanings & copy to draft</button></details>
+        <p>Enter date-wise overrides below. A blank prayer time uses the standard calculation.</p><div class="table-wrap"><table><thead><tr><th>Date</th><th>Fajr · 24h</th><th>Maghrib · 24h</th><th>Notes</th><th></th></tr></thead><tbody id="draft-rows"></tbody></table></div><div class="actions"><button id="add-row">+ Add date</button><button id="save-profile" class="primary">Save draft & preview</button></div>
+      </article>
+      <article id="preview" class="card" hidden><h3>Review timing changes</h3><p>Only Fajr and Maghrib on the listed dates change. Activating replaces the currently active profile. Already due or completed occurrences remain in history.</p><div id="preview-warnings" class="notice"></div><div id="preview-table" class="table-wrap"></div><label class="confirm-label"><input type="checkbox" id="confirm-preview"> I checked the dates, column meanings, and times against my Masjid’s timetable.</label><button id="activate-profile" class="primary">Confirm & activate</button></article>
+    </section>
+
+    <section id="page-settings" hidden><div class="section-title"><h2>Settings & system health</h2></div><div class="settings-grid"><article class="card"><h3>Prayer configuration</h3><dl id="configuration"></dl><p class="footnote">Location, method, timezone, audio folders and grace period are configured in the service YAML. Restart after changing them.</p></article><article class="card"><h3>System health</h3><div id="health-details"></div></article><article class="card"><h3>Audio collections</h3><div id="audio-files"></div><p class="footnote">New files are detected within a minute. Rotation resumes across restarts. Fajr always has its own collection.</p></article><article class="card"><h3>Control access</h3><label>Control token (if configured)<input type="password" id="control-token" autocomplete="off"></label><button id="save-token">Use token for this tab</button><p class="footnote">The token stays in this browser tab’s session. Use a trusted LAN or a protected HTTPS proxy for remote access.</p></article></div></section>
+    <footer><span>Digital Azan</span><span>Scheduled on your device. Always independent of this browser.</span></footer>
+  </main>
+</body></html>

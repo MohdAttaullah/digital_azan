@@ -1,6 +1,5 @@
 from pathlib import Path
 from datetime import datetime, timedelta
-import json
 
 
 def cleanup_old_event_files(

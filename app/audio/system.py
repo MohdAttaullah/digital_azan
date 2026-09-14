@@ -1,4 +1,5 @@
-import platform
+"""mpv's software mixer changes only Azan volume, never the host master mixer."""
+import os
 import subprocess
 from pathlib import Path
 
@@ -6,39 +7,31 @@ from app.audio.base import AudioEngine
 
 
 class SystemAudioEngine(AudioEngine):
-    """
-    Cross-platform system audio engine.
-    - Windows: winsound (blocking)
-    - Linux (Pi): mpv (headless, bluetooth-safe)
-    """
+    def __init__(self, output="pulse"):
+        self.output = output
+        self.process = None
 
-    def __init__(self):
-        self.system = platform.system().lower()
+    def start(self, file_path, volume):
+        if self.process and self.process.poll() is None:
+            raise RuntimeError("Audio is already playing")
+        if not Path(file_path).is_file():
+            raise FileNotFoundError("Selected recording is missing")
+        command = ["mpv", "--no-config", "--no-video", "--no-terminal", "--really-quiet",
+                   "--audio-display=no", f"--volume={volume}"]
+        if os.name != "nt" and self.output:
+            command.append(f"--ao={self.output}")
+        command.extend(["--", str(Path(file_path).resolve())])
+        self.process = subprocess.Popen(command, stdin=subprocess.DEVNULL,
+                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
 
-    def play_file(self, file_path: str) -> None:
-        path = Path(file_path)
+    def poll(self):
+        return self.process.poll() if self.process else None
 
-        if not path.exists():
-            print(f"[ERROR] Audio file not found: {path}")
-            return
-
-        # Windows (local testing)
-        if self.system == "windows":
-            import winsound
-            winsound.PlaySound(str(path), winsound.SND_FILENAME)
-
-        # Linux (Raspberry Pi)
-        elif self.system == "linux":
-            subprocess.run(
-                [
-                    "mpv",
-                    "--no-video",
-                    "--quiet",
-                    "--ao=pulse",
-                    str(path),
-                ],
-                check=False,
-            )
-
-        else:
-            print(f"[ERROR] Unsupported OS: {self.system}")
+    def stop(self):
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=2)
