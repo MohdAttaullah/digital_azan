@@ -2,9 +2,11 @@
 
 The existing design is a **user systemd service**, because mpv must use the same
 PulseAudio/PipeWire session as the Bluetooth speaker. Use the existing Pi audio
-user, which may be `pi` or another account. Do not introduce a second system-wide
-Azan service. No Pi address, SSD mount, user or credentials were available in this
-workspace; commands below are an installation runbook, not proof of deployment.
+user (`pi` on the verified production host). Do not introduce a second system-wide
+Azan service. Production is Debian 12 ARM64 on `raspberrypi`, with `/dev/sda2` as
+the SSD-backed root filesystem and Digital Azan installed under
+`/home/pi/digital-azan`. See `verification.md` for completed checks and remaining
+hardware/browser verification.
 
 ## 1. Inspect the actual Pi
 

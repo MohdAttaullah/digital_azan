@@ -1,5 +1,38 @@
 # Verification record — 14 September 2026
 
+## Production Raspberry Pi and CI/CD verification
+
+Production host: `pi@raspberrypi`, Debian 12 ARM64, SSD root `/dev/sda2` mounted
+at `/`, timezone `Asia/Kolkata`, NTP synchronized. Digital Azan listens on 8090
+because the existing Caddy deployment already owns 8080.
+
+| Check | Evidence | Result |
+| --- | --- | --- |
+| Push-to-main CI | Protected `main` push `f7579d8`; Actions run `34871665570` | **PASS** |
+| Required CI | `test (3.11)` and `test (3.12)` both succeeded | **PASS** |
+| Gated automatic deployment | Successful `Test` completion created `workflow_run` deployment `34871721375` for the same SHA | **PASS** |
+| Pi runner | `raspberrypi-digital-azan`, online, labels `self-hosted,Linux,ARM64,azan`, runner 2.337.0 | **PASS** |
+| Release installation | Active immutable recovery release `20260914T170242Z-f7579d8…`; dependency install, migration and activation succeeded | **PASS** |
+| Persistent data | SQLite, config, environment and both audio file inodes remained unchanged across deploy and rollback | **PASS** |
+| Database backup/migration | Verified pre-deploy backup created before successful migration | **PASS** |
+| Service restart | User service active after deployment with a new PID and zero automatic restarts | **PASS** |
+| Health check | Installer and independent LAN request returned HTTP 200, `ok: true`, 35 schedule days and no warnings | **PASS** |
+| Concurrency | Workflow group `raspberry-pi-production` plus on-disk `flock` | **PASS** |
+| Manual deployment | `workflow_dispatch` run `34872254224`: hosted validation and Pi deployment succeeded | **PASS** |
+| Rollback | Previous release activated against the current database; health and persistent inodes remained valid; manual workflow restored `f7579d8` | **PASS** |
+| Single scheduler | A second ARM64 process using the production data directory failed with `Another Azan controller owns this data directory` | **PASS** |
+| Backup timer/manual backup | Timer enabled/active; on-demand verified SQLite backup created | **PASS** |
+| Reboot survival | Full-host reboot blocked pending fresh user approval | **NOT VERIFIED** |
+| Bluetooth/audible output | PipeWire physical analog sink detected; no Bluetooth device discoverable or paired | **NOT VERIFIED** |
+| Visual browser QA | HTTP/UI assets and DOM behavior passed; no targetable browser session was available | **NOT VERIFIED** |
+
+The first controlled push (`cfc7d8e`) exposed a one-second asynchronous DOM-test
+flake in required CI. Its already-started deployment workflow was cancelled before
+release activation. The DOM clock is now fixed in the test, and production deploys
+are triggered only by a successful completed `Test` workflow from a `main` push.
+This failure/recovery is retained here because it directly verified that the final
+workflow needed a cross-workflow gate rather than an independent duplicate test.
+
 ## Verified locally
 
 Environment: Windows, project virtual environment, Python 3.12.7. Automated
@@ -81,23 +114,20 @@ escaping. They do not render pixels or reproduce browser layout engines.
 
 ## Not verified / external requirements
 
-- **No Raspberry Pi was accessed.** SSH host/user, installed OS/architecture,
-  actual SSD mount, existing service state, LAN URL, speaker and runtime credentials
-  were unavailable. No deployment or reboot was performed.
-- No audible hardware output, Bluetooth reconnection, mpv decoding against the
-  production sound device, or Linux user-session lifecycle was tested.
-- Browser tools reported no available browser, including the in-app browser.
-  Visual desktop/mobile/tablet QA remains outstanding. Responsive CSS is
-  implemented; DOM tests are not visual verification.
+- Full reboot survival remains outstanding because the automatic approval review
+  required a fresh explicit user approval for host disruption.
+- The normal and Fajr files decode successfully with `ffprobe`, PipeWire/PulseAudio
+  runs in the persistent `pi` user session, and a physical analog sink is present.
+  No Bluetooth device was paired/discoverable, so reconnection and audible output
+  remain outstanding.
+- Browser tools reported no targetable browser, including the in-app browser.
+  Visual desktop/mobile/tablet QA remains outstanding. HTTP assets and DOM tests
+  pass, but DOM tests are not visual verification.
 - OCR adapter/upload safety is tested with a stub. Real Tesseract/Poppler/Pillow
   extraction and confidence accuracy on a Masjid photo/PDF remain unverified.
   The adapter conservatively recognizes ISO Gregorian date candidates; other date
   formats/scripts/complex tables need manual correction.
-- GitHub Actions files are prepared and syntax checked, but no remote workflow
-  was run. A dedicated ARM64 Pi runner, environment variables and any environment
-  approval rules must be configured in the repository.
 - No frontend production build exists or is needed: assets are served directly.
-  Python 3.11 CI and actual ARM64 execution remain unverified locally.
 - No UI audio preview, PWA installation or live playback-volume adjustment was
   implemented. Volume changes reliably apply to subsequent playback.
 - Offline operation is limited to known cached/persisted dates. Long outages
@@ -105,4 +135,4 @@ escaping. They do not render pixels or reproduce browser layout engines.
 - Physical completion across power loss cannot be guaranteed. Durable claims
   provide at-most-once automatic starts and interrupted outcomes remain explicit.
 
-No Git commit, push, history rewrite or remote deployment was performed.
+Production commits were pushed to `main`; no history rewrite was performed.
