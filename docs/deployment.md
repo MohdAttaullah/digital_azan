@@ -67,7 +67,7 @@ legacy state into the old checkout before installation if necessary.
 If inspection confirmed that `/` is the SSD root filesystem:
 
 ```bash
-AZAN_INSTALL_ROOT="$HOME/digital-azan" AZAN_SSD_MOUNT=/ bash deploy/install.sh
+AZAN_INSTALL_ROOT="$HOME/digital-azan" AZAN_SSD_MOUNT=/ AZAN_WEB_PORT=8090 bash deploy/install.sh
 ```
 
 If the SSD is mounted elsewhere, substitute its **verified** actual path:
@@ -109,12 +109,15 @@ systemctl --user stop digital-azan
 systemctl --user restart digital-azan
 systemctl --user status digital-azan --no-pager
 journalctl --user -u digital-azan -f
-curl -sS http://127.0.0.1:8080/health
+curl -sS http://127.0.0.1:8090/health
 hostname
 hostname -I
 ```
 
-The UI is `http://<hostname>.local:8080`, or the displayed LAN IP with port 8080.
+The verified production UI is `http://raspberrypi.local:8090`, or
+`http://192.168.1.35:8090` on the current LAN. Port 8090 avoids the existing Caddy
+listener on 8080. Set `AZAN_WEB_PORT` on first installation; the installer stores
+it in `shared/environment` so later releases retain it.
 Change port/host in `shared/config.yaml` or `shared/environment` and restart.
 Health returns HTTP 503 for degraded conditions (including console simulation),
 with details in its JSON; `/api/status` remains usable for troubleshooting.
@@ -205,7 +208,7 @@ After a successful previous installation, the installer records the prior releas
 ```bash
 AZAN_INSTALL_ROOT="$HOME/digital-azan" bash deploy/rollback.sh
 systemctl --user status digital-azan
-curl -sS http://127.0.0.1:8080/health
+curl -sS http://127.0.0.1:8090/health
 ```
 
 Rollback stops the service, checks schema compatibility with previous code, and
@@ -221,10 +224,17 @@ replacement is explicit and private-network friendly:
 - `ci.yml`: pushes to main, pull requests and manual runs; Python 3.11/3.12 tests,
   lint, DOM tests, JavaScript/shell syntax and console simulation on GitHub-hosted
   runners.
-- `deploy.yml`: manual dispatch on main; hosted tests first, then the installer on
+- `deploy.yml`: every push to `main`, plus manual dispatch, runs the full hosted
+  validation job first. Only a successful validation job unlocks installation on
   a dedicated self-hosted Pi runner labelled `self-hosted`, `Linux`, `ARM64`, `azan`.
-- Configure repository environment `raspberry-pi`, with appropriate required
-  reviewers, and environment variables `AZAN_INSTALL_ROOT` and `AZAN_SSD_MOUNT`.
+  Pull requests never run the deployment job.
+- Configure repository environment `raspberry-pi`. For unattended production
+  deployment, do not add an approval gate to that environment. Optional repository
+  variables are `AZAN_INSTALL_ROOT`, `AZAN_SSD_MOUNT`, and `AZAN_WEB_PORT`; verified
+  defaults are `/home/pi/digital-azan`, `/`, and `8090`.
+- Protect `main`, require the `test (3.11)` and `test (3.12)` checks with strict
+  branch freshness, block force pushes/deletion, and require resolved review
+  conversations. Restrict the `raspberry-pi` environment to protected branches.
 - Install/run that runner as the **same audio user** and preserve user systemd
   access. The script sets its XDG runtime/D-Bus session paths when absent.
 - Optional OCR deployment: set `AZAN_INSTALL_OCR=1` in the runner environment or
@@ -232,9 +242,14 @@ replacement is explicit and private-network friendly:
 - Do not run untrusted pull requests on this Pi runner. Keep runners patched and
   network access private. No SSH key is required by this supplied flow; an existing
   external SSH deployment can instead invoke the same installer after copying code.
-- Deployment concurrency prevents overlapping jobs, and an on-disk deployment
-  lock also protects manual runs.
+- Workflow concurrency (`raspberry-pi-production`, without cancellation) prevents
+  overlapping production jobs, and an on-disk deployment lock also protects
+  manual runs.
 
-The intended flow is tests → stage release → preserve/backup data → stop old
-service → migrate → switch code → start → health verification. Remote workflow
-execution and actual ARM64 installation remain unverified until a Pi is connected.
+The production flow is push to `main` → hosted tests → ARM64 runner → stage
+release and dependencies → preserve/backup shared data → stop the old service →
+migrate → atomically switch code → start → health verification. A failed hosted
+job cannot schedule deployment, and installer or health failure exits the
+deployment job nonzero. Use `deploy/rollback.sh` to restore the recorded previous
+known-good code against the current durable database; it refuses an incompatible
+schema and never replaces production data with an older backup.

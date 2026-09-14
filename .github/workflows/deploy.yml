@@ -1,5 +1,7 @@
 name: Deploy to Raspberry Pi
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,8 +30,9 @@ jobs:
     # Install a dedicated runner as the existing Pi audio user. Never use it for pull requests.
     runs-on: [self-hosted, Linux, ARM64, azan]
     env:
-      AZAN_INSTALL_ROOT: ${{ vars.AZAN_INSTALL_ROOT }}
-      AZAN_SSD_MOUNT: ${{ vars.AZAN_SSD_MOUNT }}
+      AZAN_INSTALL_ROOT: ${{ vars.AZAN_INSTALL_ROOT || '/home/pi/digital-azan' }}
+      AZAN_SSD_MOUNT: ${{ vars.AZAN_SSD_MOUNT || '/' }}
+      AZAN_WEB_PORT: ${{ vars.AZAN_WEB_PORT || '8090' }}
     steps:
       - uses: actions/checkout@v4
       - name: Stage, migrate, restart, and verify

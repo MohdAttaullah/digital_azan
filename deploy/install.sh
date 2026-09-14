@@ -5,13 +5,20 @@ umask 077
 SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 AZAN_ROOT=${AZAN_INSTALL_ROOT:-"$HOME/digital-azan"}
 SSD_MOUNT=${AZAN_SSD_MOUNT:?Set AZAN_SSD_MOUNT to the verified SSD mount (use / for SSD root boot)}
+WEB_PORT=${AZAN_WEB_PORT:-}
 [[ $EUID -ne 0 ]] || { echo 'Run as the Pi audio user, not root.'; exit 1; }
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
 [[ "$AZAN_ROOT" = /* && "$SSD_MOUNT" = /* ]] || { echo 'Use absolute paths.'; exit 1; }
 # Restrict template substitutions to ordinary absolute paths; spaces are intentionally unsupported.
-[[ "$AZAN_ROOT" =~ ^/[A-Za-z0-9_./-]+$ && "$SSD_MOUNT" =~ ^/[A-Za-z0-9_./-]+$ ]] || exit 1
+[[ "$AZAN_ROOT" =~ ^/[A-Za-z0-9_./-]+$ ]] || exit 1
+[[ "$SSD_MOUNT" == / || "$SSD_MOUNT" =~ ^/[A-Za-z0-9_./-]+$ ]] || exit 1
 AZAN_ROOT=$(realpath -m -- "$AZAN_ROOT")
+if [[ -z "$WEB_PORT" && -f "$AZAN_ROOT/shared/environment" ]]; then
+  WEB_PORT=$(sed -n 's/^AZAN_PORT=//p' "$AZAN_ROOT/shared/environment" | tail -n 1)
+fi
+WEB_PORT=${WEB_PORT:-8080}
+[[ "$WEB_PORT" =~ ^[0-9]+$ ]] && (( WEB_PORT >= 1 && WEB_PORT <= 65535 )) || { echo 'AZAN_WEB_PORT must be an integer from 1 to 65535.'; exit 1; }
 case "$AZAN_ROOT/" in "$SOURCE/"*) echo 'Choose an install root outside the source checkout.'; exit 1 ;; esac
 SSD_MOUNT=$(realpath -e -- "$SSD_MOUNT")
 mountpoint -q -- "$SSD_MOUNT" || { echo 'Expected SSD is not mounted.'; exit 1; }
@@ -42,7 +49,7 @@ if [[ ! -f "$AZAN_ROOT/shared/config.yaml" ]]; then
   (cd -- "$RELEASE" && "$RELEASE/.venv/bin/python" -m scripts.seed_install "$LEGACY_ROOT" "$AZAN_ROOT")
 fi
 if [[ ! -f "$AZAN_ROOT/shared/environment" ]]; then
-  printf 'AZAN_CONFIG=%s/shared/config.yaml\nAZAN_DATA_DIR=%s/shared/data\n' "$AZAN_ROOT" "$AZAN_ROOT" > "$AZAN_ROOT/shared/environment"
+  printf 'AZAN_CONFIG=%s/shared/config.yaml\nAZAN_DATA_DIR=%s/shared/data\nAZAN_PORT=%s\n' "$AZAN_ROOT" "$AZAN_ROOT" "$WEB_PORT" > "$AZAN_ROOT/shared/environment"
 fi
 # Keep original trigger state/cache on first migration; copy only after old service is stopped below.
 systemctl --user stop digital-azan.service || true
@@ -56,7 +63,7 @@ if [[ -f "$LEGACY_ROOT/state/scheduler_state.json" ]]; then
 fi
 mkdir -p -- "$AZAN_ROOT/shared/data/cache"
 if [[ -d "$LEGACY_ROOT/app/cache" ]]; then rsync -a --ignore-existing "$LEGACY_ROOT/app/cache/" "$AZAN_ROOT/shared/data/cache/"; fi
-export AZAN_CONFIG="$AZAN_ROOT/shared/config.yaml" AZAN_DATA_DIR="$AZAN_ROOT/shared/data"
+export AZAN_CONFIG="$AZAN_ROOT/shared/config.yaml" AZAN_DATA_DIR="$AZAN_ROOT/shared/data" AZAN_PORT="$WEB_PORT"
 cd -- "$RELEASE"
 if [[ -f "$AZAN_DATA_DIR/azan.sqlite3" ]]; then
   "$RELEASE/.venv/bin/python" -m scripts.manage backup "$AZAN_DATA_DIR/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ).sqlite3"
