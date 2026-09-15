@@ -174,7 +174,9 @@ trusts or guesses a device. mpv continues to use PulseAudio/PipeWire.
 Deployment also installs a WirePlumber user override when the Bluetooth MAC is
 configured. It disables logind arbitration for the lingering, headless audio
 session, allowing WirePlumber to expose the A2DP sink before an interactive login.
-The existing BlueZ pairing and trust records are left untouched.
+The speaker profile is constrained to the broadly supported SBC A2DP codec to
+avoid unstable optional-codec negotiation on Raspberry Pi OS BlueZ 5.66. The
+existing BlueZ pairing and trust records are left untouched.
 
 For a controlled playback well outside the 10-minute prayer safety window, open
 Settings → Audio collections and select **Test normal Azan** or **Test Fajr Azan**.
