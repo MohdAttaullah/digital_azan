@@ -81,6 +81,10 @@ mv -Tf -- "$NEXT_LINK" "$AZAN_ROOT/current"
 if [[ -n "$PREVIOUS" && -d "$PREVIOUS" ]]; then printf '%s\n' "$PREVIOUS" > "$AZAN_ROOT/shared/previous-release"; fi
 systemctl --user daemon-reload
 if grep -Eq '^AZAN_BLUETOOTH_MAC=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$' "$AZAN_ROOT/shared/environment"; then
+  mkdir -p -- "$HOME/.config/wireplumber/bluetooth.lua.d"
+  cp -- "$RELEASE/deploy/wireplumber/bluetooth.lua.d/51-digital-azan-headless.lua" \
+    "$HOME/.config/wireplumber/bluetooth.lua.d/51-digital-azan-headless.lua"
+  systemctl --user restart wireplumber.service
   systemctl --user enable azan-bluetooth-autoconnect.service
   systemctl --user restart azan-bluetooth-autoconnect.service
 else

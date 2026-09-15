@@ -171,6 +171,11 @@ When that value is present, the installer enables
 selects the matching PipeWire sink after boot or a transient drop. It never pairs,
 trusts or guesses a device. mpv continues to use PulseAudio/PipeWire.
 
+Deployment also installs a WirePlumber user override when the Bluetooth MAC is
+configured. It disables logind arbitration for the lingering, headless audio
+session, allowing WirePlumber to expose the A2DP sink before an interactive login.
+The existing BlueZ pairing and trust records are left untouched.
+
 For a controlled playback well outside the 10-minute prayer safety window, open
 Settings → Audio collections and select **Test normal Azan** or **Test Fajr Azan**.
 The test uses the saved Azan volume, does not advance round-robin rotation, and can
