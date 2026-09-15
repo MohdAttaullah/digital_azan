@@ -74,11 +74,24 @@ test('volume, prayer toggle and occurrence skip send distinct requests',async()=
     d.getElementById('volume').value=25;
     d.getElementById('volume').dispatchEvent(new dom.window.Event('change'));await settle();
     assert.equal(calls.find(c=>c.path==='/api/volume').data.volume,25);
+    d.getElementById('volume-up').click();await settle();
+    assert.equal(calls.filter(c=>c.path==='/api/volume').at(-1).data.volume,30);
     const toggle=d.querySelector('[data-prayer="Asr"]');toggle.checked=false;
     toggle.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await settle();
     assert.equal(calls.find(c=>c.path==='/api/prayers/Asr').data.enabled,false);
     d.querySelector('[data-skip="3"]').click();await settle();
     assert.ok(calls.some(c=>c.path==='/api/occurrences/3/skip'));
+  } finally {dom.window.close();}
+});
+test('volume slider sends live changes while audio is playing',async()=>{
+  const {dom,document:d,state,calls}=await page();
+  try {
+    state.playing='test';d.dispatchEvent(new dom.window.Event('visibilitychange'));await settle();
+    d.getElementById('volume').value=30;
+    d.getElementById('volume').dispatchEvent(new dom.window.Event('input'));
+    await new Promise(resolve=>setTimeout(resolve,140));
+    assert.equal(calls.filter(c=>c.path==='/api/volume').at(-1).data.volume,30);
+    assert.ok(!d.querySelector('.volume-bar small').textContent.includes('next playback'));
   } finally {dom.window.close();}
 });
 test('audio test uses the selected collection and exposes Stop',async()=>{

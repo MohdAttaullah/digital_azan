@@ -9,5 +9,8 @@ class ConsoleAudioEngine(AudioEngine):
     def poll(self):
         return 0
 
+    def set_volume(self, volume):
+        logging.getLogger(__name__).info("SIMULATED live volume=%s", volume)
+
     def stop(self):
         pass

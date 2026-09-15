@@ -12,5 +12,9 @@ class AudioEngine(ABC):
         pass
 
     @abstractmethod
+    def set_volume(self, volume: int):
+        pass
+
+    @abstractmethod
     def stop(self):
         pass

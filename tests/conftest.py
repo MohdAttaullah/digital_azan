@@ -43,6 +43,7 @@ class FakePlayer:
         self.result = None
         self.stopped = False
         self.fail = False
+        self.volume_changes = []
 
     def start(self, path, volume):
         if self.fail:
@@ -55,6 +56,10 @@ class FakePlayer:
 
     def finish(self):
         pass
+
+    def set_volume(self, volume):
+        self.volume_changes.append(volume)
+        return True
 
     def stop(self):
         self.stopped = True

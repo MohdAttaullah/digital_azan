@@ -200,9 +200,13 @@ class Controller:
     def set_volume(self, volume):
         if type(volume) is not int or not 0 <= volume <= 100:
             raise ValueError("Volume must be an integer from 0 to 100")
-        with self.lock, self.store.connect(write=True) as db:
-            self.store.put(db, "volume", volume)
-            self.store.event(db, "volume_changed", str(volume))
+        with self.lock:
+            live = self.active is not None or self.test_active
+            applied_live = live and self.player.poll() is None and self.player.set_volume(volume)
+            with self.store.connect(write=True) as db:
+                self.store.put(db, "volume", volume)
+                detail = f"{volume} (live)" if applied_live else str(volume)
+                self.store.event(db, "volume_changed", detail)
 
     def start_audio_test(self, collection="normal"):
         if collection not in ("normal", "fajr"):
@@ -319,7 +323,7 @@ class Controller:
                     "timezone": self.cfg.timezone, "city": self.cfg.city, "country": self.cfg.country,
                     "method": self.cfg.method, "school": self.cfg.school,
                     "grace_seconds": self.cfg.trigger_window_seconds,
-                    "audio_mode": self.cfg.audio_mode, "volume_applies": "Next playback"}
+                    "audio_mode": self.cfg.audio_mode}
 
     def history(self, day):
         day = date.fromisoformat(day).isoformat()

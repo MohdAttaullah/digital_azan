@@ -40,7 +40,7 @@ On Linux use `AZAN_AUDIO_MODE=console AZAN_DATA_DIR=/tmp/azan-development python
 - **Stop Azan:** terminates the current player and records `STOPPED_BY_USER`. An already completed recording remains `PLAYED` if completion wins the race.
 - **Skip this Azan:** only that upcoming occurrence changes to `SKIPPED`.
 - **Prayer toggles:** persist across days/reboots. Enabling a prayer after its disabled occurrence has passed does not replay it.
-- **Volume:** 0–100%, saved in SQLite. Uses mpv's software mixer, leaving the system master volume alone. Changes apply to the **next** playback; live volume adjustment is not implemented.
+- **Volume:** 0–100%, saved in SQLite. During playback, slider and +/- changes are sent immediately to mpv's software mixer and also persist for the next Azan. The PipeWire/Bluetooth sink volume is never changed.
 - **History:** select a date to see actual playback and other outcomes. Only `PLAYED` counts as played. No historical sound completion is invented for the old JSON flags.
 - **Settings:** editable control token for the browser tab, detected audio collections, and read-only location/calculation/runtime configuration and health. Persistent volume/toggles are on Today. Location, timezone, method and folder paths remain in YAML to keep critical configuration explicit.
 
@@ -89,7 +89,7 @@ shared/audio/fajr/    # Fajr only
 
 Configure `audio.collections.normal` and `audio.collections.fajr` in YAML. An explicitly configured empty Fajr directory is a visible configuration error; it **never** falls back to normal Azan.
 
-Names are naturally sorted (`azan_1`, `azan_2`, `azan_10`). The last selected filename is persisted separately for each collection. Rotation advances on a claimed playback attempt, including a failed start. Added/removed files are handled without resetting all positions. New recordings are discovered within a minute. WAV files are checked for valid PCM headers/length; compressed formats are checked with ffprobe. Decoder failures still become terminal failed occurrences. Supported formats: WAV, MP3, OGG, FLAC and M4A.
+Any number of supported files can be added without code changes. Names are naturally sorted (`azan_1`, `azan_2`, `azan_10`). The last selected filename is persisted separately for each collection. Rotation advances on a claimed playback attempt, including a failed start. Added/removed files are handled without resetting all positions. New recordings are discovered within a minute. WAV files are checked for valid PCM headers/length; compressed formats are checked with ffprobe. Decoder failures still become terminal failed occurrences. Supported formats: WAV, MP3, OGG, FLAC and M4A.
 
 Install mpv on both Pi and Windows for physical playback. Windows winsound was replaced because it could not provide this controller's volume and process lifecycle controls. Pi playback retains `--ao=pulse`. MPD is stopped only if it was playing, and resumed after completion/stop; failure to coordinate it is logged. [mpv volume documentation](https://mpv.io/manual/stable/) describes the application software mixer.
 

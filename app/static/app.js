@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state = null, serverOffset = 0, currentPage = 'today', editingId = null, previewState = null, ocrLines = [], polling = false, prayerSignature = '', connectionFailed = false;
+let state = null, serverOffset = 0, currentPage = 'today', editingId = null, previewState = null, ocrLines = [], polling = false, prayerSignature = '', connectionFailed = false, volumeTimer = null, volumeQueue = Promise.resolve();
 let token = sessionStorage.getItem('azan-token') || '';
 let draft = [{date:'',fajr:'',maghrib:'',notes:''}];
 function message(text, error=false) { const el = $(error?'error':'toast'); el.textContent=text; el.hidden=false; if(!error) setTimeout(()=>{el.hidden=true;},7000); }
@@ -82,6 +82,10 @@ async function perform(fn) {
   $('error').hidden=true;
   try { await fn(); await refresh(); } catch(e) { message(e.message,true); }
 }
+function saveVolume(value) {
+  volumeQueue=volumeQueue.catch(()=>{}).then(()=>api('/api/volume',{volume:value}));
+  return volumeQueue;
+}
 async function openPage(page) {
   currentPage=page;
   for(const name of ['today','history','ramadan','settings']) $(`page-${name}`).hidden=name!==page;
@@ -127,9 +131,18 @@ $('resume').onclick=()=>perform(()=>api('/api/resume',{}));
 $('stop').onclick=()=>perform(()=>api('/api/stop',{}));
 $('prayers').addEventListener('click',e=>{const b=e.target.closest('[data-skip]');if(b) perform(()=>api(`/api/occurrences/${b.dataset.skip}/skip`,{}));});
 $('prayers').addEventListener('change',e=>{if(e.target.dataset.prayer) perform(()=>api(`/api/prayers/${e.target.dataset.prayer}`,{enabled:e.target.checked}));});
-$('volume').oninput=()=>{$('volume-label').textContent=`${$('volume').value}%`;};
-$('volume').onchange=()=>perform(()=>api('/api/volume',{volume:Number($('volume').value)}));
-for(const [id,delta] of [['volume-down',-5],['volume-up',5]]) $(id).onclick=()=>perform(()=>api('/api/volume',{volume:Math.min(100,Math.max(0,Number($('volume').value)+delta))}));
+$('volume').oninput=()=>{
+  $('volume-label').textContent=`${$('volume').value}%`;
+  if(state?.playing) {
+    clearTimeout(volumeTimer);
+    volumeTimer=setTimeout(()=>{volumeTimer=null;perform(()=>saveVolume(Number($('volume').value)));},100);
+  }
+};
+$('volume').onchange=()=>{
+  clearTimeout(volumeTimer);volumeTimer=null;
+  perform(()=>saveVolume(Number($('volume').value)));
+};
+for(const [id,delta] of [['volume-down',-5],['volume-up',5]]) $(id).onclick=()=>perform(()=>saveVolume(Math.min(100,Math.max(0,Number($('volume').value)+delta))));
 $('history-date').onchange=()=>perform(loadHistory);
 $('save-token').onclick=()=>{token=$('control-token').value;sessionStorage.setItem('azan-token',token);$('control-token').value='';message('Control token saved for this tab.');};
 for(const [id,collection] of [['test-normal-audio','normal'],['test-fajr-audio','fajr']]) $(id).onclick=()=>perform(async()=>{const result=await api('/api/audio/test',{collection});message(`Testing ${result.audio_file} at ${result.volume}%. Use Stop Azan to end playback.`);});

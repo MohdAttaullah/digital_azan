@@ -36,6 +36,9 @@ class AzanPlayer:
     def poll(self):
         return self.engine.poll()
 
+    def set_volume(self, volume):
+        return self.engine.set_volume(volume)
+
     def finish(self):
         if self.resume_mpd:
             self.resume_mpd = False

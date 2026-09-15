@@ -135,7 +135,8 @@ environment.
 
 Copy supported recordings into the persistent `shared/audio/normal` or
 `shared/audio/fajr` folder. Never put ordinary Azan in the Fajr collection. They
-are rediscovered within a minute. Health reports empty/invalid collections.
+are rediscovered within a minute, with no configured file-count limit or code
+change required. Health reports empty/invalid collections.
 
 Read-only audio diagnostics:
 
@@ -181,7 +182,9 @@ existing BlueZ pairing and trust records are left untouched.
 For a controlled playback well outside the 10-minute prayer safety window, open
 Settings → Audio collections and select **Test normal Azan** or **Test Fajr Azan**.
 The test uses the saved Azan volume, does not advance round-robin rotation, and can
-be ended with **Stop Azan** in the playback banner. Start/stop/completion is written
+be ended with **Stop Azan** in the playback banner. Slider and +/- changes update
+the active mpv software mixer immediately and persist for later playback without
+changing the PipeWire/Bluetooth sink volume. Start/stop/completion is written
 to the event audit trail without creating a prayer occurrence.
 
 ## 6. Backups and restore
