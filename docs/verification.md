@@ -1,4 +1,4 @@
-# Verification record — 14 September 2026
+# Verification record — 15 September 2026
 
 ## Production Raspberry Pi and CI/CD verification
 
@@ -8,23 +8,26 @@ because the existing Caddy deployment already owns 8080.
 
 | Check | Evidence | Result |
 | --- | --- | --- |
-| Push-to-main CI | Protected `main` push `f7579d8`; Actions run `34871665570` | **PASS** |
-| Required CI | `test (3.11)` and `test (3.12)` both succeeded | **PASS** |
-| Gated automatic deployment | Successful `Test` completion created `workflow_run` deployment `34871721375` for the same SHA | **PASS** |
+| Push-to-main CI | Protected `main` push `f02688c`; Actions run `35003820920` | **PASS** |
+| Required CI | `test (3.11)` and `test (3.12)` both succeeded before deployment | **PASS** |
+| Gated automatic deployment | Successful `Test` completion created `workflow_run` deployment `35003859284` for the same SHA | **PASS** |
 | Pi runner | `raspberrypi-digital-azan`, online, labels `self-hosted,Linux,ARM64,azan`, runner 2.337.0 | **PASS** |
-| Release installation | Active immutable recovery release `20260914T170242Z-f7579d8…`; dependency install, migration and activation succeeded | **PASS** |
-| Persistent data | SQLite, config, environment and both audio file inodes remained unchanged across deploy and rollback | **PASS** |
+| Release installation | Immutable release `20260915T175151Z-f02688c…`; dependency install, migration and activation succeeded | **PASS** |
+| Persistent data | SQLite, config, environment and both audio collection directory inodes remained unchanged across the final reboot; settings, history, volume 70 and rotation values also remained unchanged | **PASS** |
 | Database backup/migration | Verified pre-deploy backup created before successful migration | **PASS** |
-| Service restart | User service active after deployment with a new PID and zero automatic restarts | **PASS** |
-| Health check | Installer and independent LAN request returned HTTP 200, `ok: true`, 35 schedule days and no warnings | **PASS** |
+| Service restart | Lingering user service started during boot without an interactive login, PID 676, zero automatic restarts | **PASS** |
+| Health check | Installer and independent post-reboot LAN request returned HTTP 200, `ok: true`, 35 schedule days and no warnings after NTP synchronized | **PASS** |
 | Concurrency | Workflow group `raspberry-pi-production` plus on-disk `flock` | **PASS** |
 | Manual deployment | `workflow_dispatch` run `34872254224`: hosted validation and Pi deployment succeeded | **PASS** |
 | Rollback | Previous release activated against the current database; health and persistent inodes remained valid; manual workflow restored `f7579d8` | **PASS** |
-| Single scheduler | A second ARM64 process using the production data directory failed with `Another Azan controller owns this data directory` | **PASS** |
+| Single scheduler | Exactly one production `python -m app` process existed after reboot; the process lock also rejects a second controller | **PASS** |
 | Backup timer/manual backup | Timer enabled/active; on-demand verified SQLite backup created | **PASS** |
-| Reboot survival | Full-host reboot blocked pending fresh user approval | **NOT VERIFIED** |
-| Bluetooth/audible output | PipeWire physical analog sink detected; no Bluetooth device discoverable or paired | **NOT VERIFIED** |
-| Visual browser QA | HTTP/UI assets and DOM behavior passed; no targetable browser session was available | **NOT VERIFIED** |
+| Reboot survival | Full host reboot completed; application and runner recovered before the first SSH login | **PASS** |
+| Bluetooth reconnect/default sink | Paired, bonded and trusted KK-BT01 reconnected automatically; `bluez_output.3C_1A_CD_7D_9C_3D.1` became the default sink | **PASS** |
+| Controlled playback/Stop/volume | Real `azan.wav` played through KK-BT01's sink at 20%; Stop ended `mpv`; saved volume was restored to 70; rotation and prayer history did not change | **PASS** |
+| Actual audible output | PipeWire showed the live stream routed to KK-BT01, but physical sound requires an on-site listener's confirmation | **NOT VERIFIED** |
+| Production UI | LAN root, JavaScript and CSS returned HTTP 200 with expected navigation and controls | **PASS** |
+| Visual browser QA | No targetable browser was available through the computer-use integration | **NOT VERIFIED** |
 
 The first controlled push (`cfc7d8e`) exposed a one-second asynchronous DOM-test
 flake in required CI. Its already-started deployment workflow was cancelled before
@@ -41,8 +44,8 @@ was sounded. The production/default state directory was not used for smoke tests
 
 | Check | Exact command / method | Result |
 | --- | --- | --- |
-| Backend, scheduler, audio, persistence, migration, Ramadan, API, deployment seeding | `.venv/Scripts/python.exe -m pytest -q --basetemp=artifacts/pytest-final --tb=short` | **64 passed** |
-| DOM interaction tests | `npm.cmd test` | **6 passed** |
+| Backend, scheduler, audio, persistence, migration, Ramadan, API, deployment seeding | `.venv/Scripts/python.exe -m pytest -q --basetemp=.pytest-runtime` | **68 passed** |
+| DOM interaction tests | `npm.cmd test` | **7 passed** |
 | Python lint | `.venv/Scripts/python.exe -m ruff check app scripts tests` | Pass |
 | Dependency consistency | `.venv/Scripts/python.exe -m pip check` | No broken requirements |
 | Python compilation | `.venv/Scripts/python.exe -m compileall -q app scripts` | Pass |
@@ -114,12 +117,9 @@ escaping. They do not render pixels or reproduce browser layout engines.
 
 ## Not verified / external requirements
 
-- Full reboot survival remains outstanding because the automatic approval review
-  required a fresh explicit user approval for host disruption.
-- The normal and Fajr files decode successfully with `ffprobe`, PipeWire/PulseAudio
-  runs in the persistent `pi` user session, and a physical analog sink is present.
-  No Bluetooth device was paired/discoverable, so reconnection and audible output
-  remain outstanding.
+- The real playback created a live PipeWire sink input on KK-BT01 and was stopped
+  successfully after eight seconds. An on-site listener must confirm that sound
+  was physically audible before that check can be marked PASS.
 - Browser tools reported no targetable browser, including the in-app browser.
   Visual desktop/mobile/tablet QA remains outstanding. HTTP assets and DOM tests
   pass, but DOM tests are not visual verification.

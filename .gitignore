@@ -9,6 +9,7 @@ state/*.lock
 state/cache/
 state/backups/
 .pytest_cache/
+.pytest-runtime/
 .ruff_cache/
 artifacts/
 *.log
