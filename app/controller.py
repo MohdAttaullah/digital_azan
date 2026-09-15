@@ -34,6 +34,8 @@ class Controller:
         self.refresh_requested = threading.Event()
         self.threads = []
         self.active = None
+        self.test_active = False
+        self.test_file = None
         self.heartbeat = None
         self.schedule_warning = "Schedule loading"
         self.runtime_warning = None
@@ -128,6 +130,15 @@ class Controller:
         with self.lock:
             now = self.now()
             selected = None
+            if self.test_active:
+                result = self.player.poll()
+                if result is not None:
+                    self.player.finish()
+                    with self.store.connect(write=True) as db:
+                        self.store.event(db, "audio_test_completed" if result == 0 else "audio_test_failed",
+                                         self.test_file or "")
+                    self.test_active = False
+                    self.test_file = None
             with self.store.connect(write=True) as db:
                 if self.active is not None:
                     result = self.player.poll()
@@ -151,7 +162,7 @@ class Controller:
                         status, reason = "SUPPRESSED", "Meeting snooze"
                     elif elapsed > self.cfg.trigger_window_seconds:
                         status, reason = "MISSED_DOWNTIME", "Outside late-start grace period"
-                    elif self.active is not None:
+                    elif self.active is not None or self.test_active:
                         status, reason = "FAILED", "Another Azan is already playing"
                     if status:
                         db.execute("UPDATE occurrences SET status=?,suppression_reason=?,completed_at=? WHERE id=?",
@@ -192,6 +203,32 @@ class Controller:
         with self.lock, self.store.connect(write=True) as db:
             self.store.put(db, "volume", volume)
             self.store.event(db, "volume_changed", str(volume))
+
+    def start_audio_test(self, collection="normal"):
+        if collection not in ("normal", "fajr"):
+            raise ValueError("Audio test collection must be normal or fajr")
+        with self.lock:
+            if self.active is not None or self.test_active:
+                raise ValueError("Audio is already playing")
+            now = self.now()
+            upcoming = self.store.rows(
+                "SELECT scheduled_at FROM occurrences WHERE status='PENDING' AND scheduled_at>? "
+                "ORDER BY scheduled_at LIMIT 1", (now.isoformat(),))
+            if upcoming and (datetime.fromisoformat(upcoming[0]["scheduled_at"]) - now).total_seconds() < 600:
+                raise ValueError("Audio tests are disabled within 10 minutes of a prayer")
+            self.collections.refresh()
+            files = self.collections.files[collection]
+            if not files:
+                raise ValueError(f"No usable {collection} recording")
+            audio = str(files[0])
+            with self.store.connect() as db:
+                volume = self.store.get(db, "volume", 70)
+            self.player.start(audio, volume)
+            self.test_active = True
+            self.test_file = Path(audio).name
+            with self.store.connect(write=True) as db:
+                self.store.event(db, "audio_test_started", f"{self.test_file} at volume {volume}")
+            return {"ok": True, "collection": collection, "audio_file": self.test_file, "volume": volume}
 
     def set_enabled(self, prayer, enabled):
         if prayer not in self.cfg.prayers or type(enabled) is not bool:
@@ -242,6 +279,19 @@ class Controller:
                     else:
                         self._finish(db, "FAILED" if shutdown else "STOPPED_BY_USER",
                                      "Service shutting down" if shutdown else None)
+            elif self.test_active:
+                result = self.player.poll()
+                self.player.stop()
+                with self.store.connect(write=True) as db:
+                    if result == 0:
+                        action, detail = "audio_test_completed", self.test_file or ""
+                    elif shutdown:
+                        action, detail = "audio_test_interrupted", "Service shutting down"
+                    else:
+                        action, detail = "audio_test_stopped", self.test_file or ""
+                    self.store.event(db, action, detail)
+                self.test_active = False
+                self.test_file = None
 
     def activate_profile(self, profile_id, active):
         with self.lock:
@@ -286,7 +336,9 @@ class Controller:
             upcoming = self.store.rows("SELECT * FROM occurrences WHERE status='PENDING' AND scheduled_at>? "
                                        "ORDER BY scheduled_at LIMIT 1", (now.isoformat(),))
             result.update(now=now.isoformat(), settings=self.settings(),
-                          next=upcoming[0] if upcoming else None, playing=self.active,
+                          next=upcoming[0] if upcoming else None,
+                          playing=self.active if self.active is not None else ("test" if self.test_active else None),
+                          test_playback={"active": self.test_active, "audio_file": self.test_file},
                           health=self.health())
             return result
 

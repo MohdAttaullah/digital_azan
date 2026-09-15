@@ -159,10 +159,23 @@ speaker; unit tests never do this.
 
 If the previously paired speaker lost its configuration after SSD migration,
 use `bluetoothctl` to scan, pair, trust and connect the actual device. Keep or
-restore the original Bluetooth reconnect service with its verified device
-address. The installer does not guess a Bluetooth MAC, alter pairing or select a
-new system-wide default sink. `pactl set-default-sink <actual-sink-name>` can
-restore a deliberately chosen default. mpv retains the old PulseAudio output.
+restore its verified device address in `shared/environment`:
+
+```text
+AZAN_BLUETOOTH_MAC=3C:1A:CD:7D:9C:3D
+AZAN_BLUETOOTH_RETRY_SECONDS=15
+```
+
+When that value is present, the installer enables
+`azan-bluetooth-autoconnect.service`. It reconnects the existing trusted bond and
+selects the matching PipeWire sink after boot or a transient drop. It never pairs,
+trusts or guesses a device. mpv continues to use PulseAudio/PipeWire.
+
+For a controlled playback well outside the 10-minute prayer safety window, open
+Settings → Audio collections and select **Test normal Azan** or **Test Fajr Azan**.
+The test uses the saved Azan volume, does not advance round-robin rotation, and can
+be ended with **Stop Azan** in the playback banner. Start/stop/completion is written
+to the event audit trail without creating a prayer occurrence.
 
 ## 6. Backups and restore
 

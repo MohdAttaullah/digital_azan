@@ -19,4 +19,5 @@ cd -- "$PREVIOUS"
 ln -s -- "$PREVIOUS" "$AZAN_ROOT/current.next"
 mv -Tf -- "$AZAN_ROOT/current.next" "$AZAN_ROOT/current"
 systemctl --user start digital-azan.service
+systemctl --user try-restart azan-bluetooth-autoconnect.service || true
 echo 'Previous code started using the current durable database. Check /health and logs.'

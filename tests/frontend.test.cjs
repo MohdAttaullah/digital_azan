@@ -30,6 +30,7 @@ async function page() {
     else if(path==='/api/snooze')state.settings.snooze_until='2027-03-05T11:00:00Z';
     else if(path==='/api/resume')state.settings.snooze_until=null;
     else if(path==='/api/stop')state.playing=null;
+    else if(path==='/api/audio/test'){state.playing='test';result={ok:true,audio_file:'azan_1.wav',volume:state.settings.volume};}
     else if(path.startsWith('/api/history'))result={date:'2027-03-05',scheduled:5,counts:state.counts,occurrences:state.occurrences};
     else if(path==='/api/ramadan')result=[];
     else if(path==='/api/audio')result={normal:[{filename:'azan_1.wav'}],fajr:[{filename:'fajr_1.wav'}],warnings:[]};
@@ -78,6 +79,17 @@ test('volume, prayer toggle and occurrence skip send distinct requests',async()=
     assert.equal(calls.find(c=>c.path==='/api/prayers/Asr').data.enabled,false);
     d.querySelector('[data-skip="3"]').click();await settle();
     assert.ok(calls.some(c=>c.path==='/api/occurrences/3/skip'));
+  } finally {dom.window.close();}
+});
+test('audio test uses the selected collection and exposes Stop',async()=>{
+  const {dom,document:d,calls}=await page();
+  try {
+    d.querySelector('[data-page="settings"]').click();await settle();
+    d.getElementById('test-normal-audio').click();await settle();
+    assert.equal(calls.find(c=>c.path==='/api/audio/test').data.collection,'normal');
+    assert.equal(d.getElementById('playing-banner').hidden,false);
+    d.getElementById('stop').click();await settle();
+    assert.equal(d.getElementById('playing-banner').hidden,true);
   } finally {dom.window.close();}
 });
 test('history and settings display actual endpoint data',async()=>{

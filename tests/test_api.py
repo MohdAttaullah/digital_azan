@@ -29,7 +29,8 @@ def test_dashboard_status_history(web):
 
 @pytest.mark.parametrize("url,data", [("/api/volume", {"volume": 25}),
     ("/api/prayers/Asr", {"enabled": False}), ("/api/snooze", {"minutes": 60}),
-    ("/api/snooze", {"until_time": "05:30"}), ("/api/resume", {}), ("/api/stop", {})])
+    ("/api/snooze", {"until_time": "05:30"}), ("/api/resume", {}), ("/api/stop", {}),
+    ("/api/audio/test", {"collection": "normal"})])
 def test_controls(web, url, data):
     client, _ = web
     assert client.post(url, json=data, headers=HEADERS).status_code == 200
@@ -39,7 +40,8 @@ def test_controls(web, url, data):
     ("/api/volume", {"volume": True}), ("/api/prayers/Asr", {"enabled": "false"}),
     ("/api/prayers/Bad", {"enabled": True}), ("/api/snooze", {"minutes": -1}),
     ("/api/snooze", {"until": "2027-03-05T10:00:00"}),
-    ("/api/snooze", {"until_time": "99:00"})])
+    ("/api/snooze", {"until_time": "99:00"}),
+    ("/api/audio/test", {"collection": "other"})])
 def test_invalid_control_input(web, url, data):
     client, _ = web
     assert client.post(url, json=data, headers=HEADERS).status_code == 400

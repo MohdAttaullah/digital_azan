@@ -1,0 +1,15 @@
+[Unit]
+Description=Digital Azan Bluetooth speaker reconnect monitor
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Wants=pipewire.service pipewire-pulse.service wireplumber.service
+
+[Service]
+Type=simple
+EnvironmentFile=@ROOT@/shared/environment
+ExecStart=/usr/bin/bash @ROOT@/current/deploy/bluetooth-autoconnect.sh
+Restart=always
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=default.target

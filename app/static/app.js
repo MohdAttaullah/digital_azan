@@ -132,6 +132,7 @@ $('volume').onchange=()=>perform(()=>api('/api/volume',{volume:Number($('volume'
 for(const [id,delta] of [['volume-down',-5],['volume-up',5]]) $(id).onclick=()=>perform(()=>api('/api/volume',{volume:Math.min(100,Math.max(0,Number($('volume').value)+delta))}));
 $('history-date').onchange=()=>perform(loadHistory);
 $('save-token').onclick=()=>{token=$('control-token').value;sessionStorage.setItem('azan-token',token);$('control-token').value='';message('Control token saved for this tab.');};
+for(const [id,collection] of [['test-normal-audio','normal'],['test-fajr-audio','fajr']]) $(id).onclick=()=>perform(async()=>{const result=await api('/api/audio/test',{collection});message(`Testing ${result.audio_file} at ${result.volume}%. Use Stop Azan to end playback.`);});
 $('new-profile').onclick=()=>{editingId=null;draft=[{date:'',fajr:'',maghrib:'',notes:''}];$('profile-name').value='';$('profile-source').value='';$('editor-title').textContent='New draft';$('preview').hidden=true;renderDraft();$('profile-editor').scrollIntoView({behavior:'smooth'});};
 $('add-row').onclick=()=>{readDraft();draft.push({date:'',fajr:'',maghrib:'',notes:''});renderDraft();};
 $('draft-rows').onclick=e=>{const b=e.target.closest('[data-remove]');if(b){readDraft();draft.splice(Number(b.dataset.remove),1);renderDraft();}};

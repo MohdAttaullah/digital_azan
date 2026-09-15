@@ -73,12 +73,19 @@ PREVIOUS=$(readlink -f -- "$AZAN_ROOT/current" || true)
 mkdir -p -- "$HOME/.config/systemd/user"
 sed -e "s|@ROOT@|$AZAN_ROOT|g" -e "s|@MOUNT@|$SSD_MOUNT|g" "$RELEASE/deploy/digital-azan.service.in" > "$HOME/.config/systemd/user/digital-azan.service"
 sed -e "s|@ROOT@|$AZAN_ROOT|g" "$RELEASE/deploy/azan-backup.service.in" > "$HOME/.config/systemd/user/azan-backup.service"
+sed -e "s|@ROOT@|$AZAN_ROOT|g" "$RELEASE/deploy/azan-bluetooth-autoconnect.service.in" > "$HOME/.config/systemd/user/azan-bluetooth-autoconnect.service"
 cp -- "$RELEASE/deploy/azan-backup.timer" "$HOME/.config/systemd/user/azan-backup.timer"
 NEXT_LINK="$AZAN_ROOT/current.next.$(basename -- "$RELEASE")"
 ln -s -- "$RELEASE" "$NEXT_LINK"
 mv -Tf -- "$NEXT_LINK" "$AZAN_ROOT/current"
 if [[ -n "$PREVIOUS" && -d "$PREVIOUS" ]]; then printf '%s\n' "$PREVIOUS" > "$AZAN_ROOT/shared/previous-release"; fi
 systemctl --user daemon-reload
+if grep -Eq '^AZAN_BLUETOOTH_MAC=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$' "$AZAN_ROOT/shared/environment"; then
+  systemctl --user enable azan-bluetooth-autoconnect.service
+  systemctl --user restart azan-bluetooth-autoconnect.service
+else
+  systemctl --user disable --now azan-bluetooth-autoconnect.service 2>/dev/null || true
+fi
 systemctl --user enable --now digital-azan.service
 systemctl --user enable --now azan-backup.timer
 PORT=$("$RELEASE/.venv/bin/python" -c 'from app.config import load_config; print(load_config().port)')

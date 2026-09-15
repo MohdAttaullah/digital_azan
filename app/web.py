@@ -161,6 +161,11 @@ def create_app(controller):
             result["warnings"] = controller.collections.warnings
         return jsonify(result)
 
+    @app.post("/api/audio/test")
+    def audio_test():
+        data = body()
+        return jsonify(controller.start_audio_test(data.get("collection", "normal")))
+
     @app.get("/api/ramadan")
     def profiles():
         with controller.lock:

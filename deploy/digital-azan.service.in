@@ -1,7 +1,7 @@
 [Unit]
 Description=Digital Azan Controller
-After=pipewire.service pipewire-pulse.service wireplumber.service
-Wants=pipewire.service pipewire-pulse.service wireplumber.service
+After=pipewire.service pipewire-pulse.service wireplumber.service azan-bluetooth-autoconnect.service
+Wants=pipewire.service pipewire-pulse.service wireplumber.service azan-bluetooth-autoconnect.service
 StartLimitIntervalSec=0
 
 [Service]

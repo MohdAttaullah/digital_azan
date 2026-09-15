@@ -113,6 +113,29 @@ def test_snooze_does_not_stop_active_audio(rig):
     assert len(p.starts) == 1
 
 
+def test_audio_test_uses_volume_stops_and_does_not_advance_rotation(rig):
+    c, _, player = rig
+    c.set_volume(25)
+    result = c.start_audio_test("normal")
+    assert result["audio_file"] == "azan_1.wav"
+    assert result["volume"] == 25
+    assert c.status()["playing"] == "test"
+    assert c.store.rows("SELECT * FROM rotations") == []
+    c.stop_audio()
+    assert player.stopped
+    assert c.status()["playing"] is None
+    actions = [row["action"] for row in c.store.rows("SELECT action FROM events ORDER BY id")]
+    assert "audio_test_started" in actions
+    assert "audio_test_stopped" in actions
+
+
+def test_audio_test_is_blocked_near_prayer(rig):
+    c, clock, _ = rig
+    clock.set("2027-03-05T05:12:00+05:30")
+    with pytest.raises(ValueError, match="within 10 minutes"):
+        c.start_audio_test("normal")
+
+
 def test_skip_one_day(rig):
     c, clock, _ = rig
     c.skip(occurrence(c, "Maghrib")["id"])
