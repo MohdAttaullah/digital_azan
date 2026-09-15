@@ -36,6 +36,24 @@ are triggered only by a successful completed `Test` workflow from a `main` push.
 This failure/recovery is retained here because it directly verified that the final
 workflow needed a cross-workflow gate rather than an independent duplicate test.
 
+## Final audio UX verification — 16 September 2026
+
+Commit `033f656` passed required CI run `35008547326` and automatic Pi deployment
+run `35008594437`. The deployed release was
+`20260915T183732Z-033f6569c22b36b8d0574cb3fe2e5b885481a8fb`.
+
+| Check | Evidence | Result |
+| --- | --- | --- |
+| Unlimited collection discovery | Two temporary valid copies were added to each persistent collection; the live API discovered three naturally sorted normal files and three Fajr files without code/config changes | **PASS** |
+| Prayer-to-collection routing | Isolated Pi sequence selected normal for Dhuhr, Asr, Maghrib and Isha, and Fajr files only for Fajr | **PASS** |
+| Independent round-robin | Isolated SQLite retained separate `normal` and `fajr` last-file rows and advanced each sequence independently | **PASS** |
+| Production history isolation | Production occurrence count stayed 185 and its selected-field SHA-256 stayed `b5860a5b…a9822`; production rotation rows were unchanged | **PASS** |
+| Live application volume | Controlled normal Azan began at 70; mpv IPC reported immediate property changes to 30 and then 90 | **PASS** |
+| Global sink independence | KK-BT01 remained the default sink at 100%, 0.00 dB and unmuted before, during and after live volume changes | **PASS** |
+| Stop and persistence | Stop removed mpv; SQLite stored 90; after service restart the next controlled playback started at 90 | **PASS** |
+| Runtime health | One `python -m app` process, zero systemd restarts, healthy database/scheduler/clock, and KK-BT01 still selected | **PASS** |
+| UI wording and controls | Old next-playback wording absent; slider input and +/- use the same serialized live/persistent volume API | **PASS** |
+
 ## Verified locally
 
 Environment: Windows, project virtual environment, Python 3.12.7. Automated
@@ -44,8 +62,8 @@ was sounded. The production/default state directory was not used for smoke tests
 
 | Check | Exact command / method | Result |
 | --- | --- | --- |
-| Backend, scheduler, audio, persistence, migration, Ramadan, API, deployment seeding | `.venv/Scripts/python.exe -m pytest -q --basetemp=.pytest-runtime` | **68 passed** |
-| DOM interaction tests | `npm.cmd test` | **7 passed** |
+| Backend, scheduler, audio, persistence, migration, Ramadan, API, deployment seeding | `.venv/Scripts/python.exe -m pytest -q --basetemp=artifacts/pytest-live-volume-final` | **70 passed** |
+| DOM interaction tests | `npm.cmd test` | **8 passed** |
 | Python lint | `.venv/Scripts/python.exe -m ruff check app scripts tests` | Pass |
 | Dependency consistency | `.venv/Scripts/python.exe -m pip check` | No broken requirements |
 | Python compilation | `.venv/Scripts/python.exe -m compileall -q app scripts` | Pass |
@@ -103,8 +121,9 @@ The tests cover transactional duplicate prevention, concurrent ticks, grace
 boundaries, restart after completion/claim, stop and failed playback, watchdog,
 midnight/next-day scheduling, disabled prayers, single-date skip, snooze/resume
 including expired snooze across downtime, independent persisted audio rotation,
-added/removed/corrupt files, empty Fajr collection, software-volume process
-arguments, MPD restoration, migrations and consistent backups, legacy trigger
+arbitrary-size collections, added/removed/corrupt files, empty Fajr collection,
+software-volume process arguments and live mpv IPC changes, MPD restoration,
+migrations and consistent backups, legacy trigger
 import, method/location-specific offline cache, Ramadan precedence/fallback,
 retroactive corrections, import validation/mapping, revision-bound activation,
 upload draft safety, control authentication/cross-origin/host protection, and
@@ -117,9 +136,9 @@ escaping. They do not render pixels or reproduce browser layout engines.
 
 ## Not verified / external requirements
 
-- The real playback created a live PipeWire sink input on KK-BT01 and was stopped
-  successfully after eight seconds. An on-site listener must confirm that sound
-  was physically audible before that check can be marked PASS.
+- Controlled real playback created a live PipeWire sink input on KK-BT01, and mpv
+  confirmed runtime volume 70, 30 and 90 before Stop. An on-site listener must
+  still confirm perceived loudness before physical audibility can be marked PASS.
 - Browser tools reported no targetable browser, including the in-app browser.
   Visual desktop/mobile/tablet QA remains outstanding. HTTP assets and DOM tests
   pass, but DOM tests are not visual verification.
@@ -128,8 +147,7 @@ escaping. They do not render pixels or reproduce browser layout engines.
   The adapter conservatively recognizes ISO Gregorian date candidates; other date
   formats/scripts/complex tables need manual correction.
 - No frontend production build exists or is needed: assets are served directly.
-- No UI audio preview, PWA installation or live playback-volume adjustment was
-  implemented. Volume changes reliably apply to subsequent playback.
+- PWA installation is not implemented.
 - Offline operation is limited to known cached/persisted dates. Long outages
   beyond schedule coverage produce visible warnings, not fabricated schedules.
 - Physical completion across power loss cannot be guaranteed. Durable claims
